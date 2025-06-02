@@ -70,7 +70,7 @@ export const allService = async (req, res) => {
     }
 }
 
-export const getService = async(req, res)=>{}
+// export const getService = async(req, res)=>{}
 
 export const editService = async (req, res) => {
     try {
@@ -102,10 +102,30 @@ export const editService = async (req, res) => {
 export const deleteService = async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedService = await Service.findByIdAndDelete(id);
-        if (!deletedService) {
+        const service = await Service.findById(id);
+        if (!service) {
             return res.status(404).json({ success: false, message: 'Service not found' });
         }
+        // Extract public_id from the image URL
+        const imageUrl = service.image;
+        let publicId = null;
+        if (imageUrl) {
+            // Cloudinary URLs are like: https://res.cloudinary.com/<cloud_name>/image/upload/v<version>/<public_id>.<ext>
+            // We need to extract <public_id> (without extension)
+            const parts = imageUrl.split('/');
+            const fileWithExt = parts[parts.length - 1];
+            publicId = fileWithExt.split('.')[0];
+            // If your upload folder is set, you may need to prepend the folder name
+            if (parts.length > 7) {
+                // e.g., .../upload/v1234567890/foldername/filename.jpg
+                publicId = parts.slice(7, parts.length - 1).concat(publicId).join('/');
+            }
+        }
+        // Delete from Cloudinary if publicId found
+        if (publicId) {
+            await cloudinary.uploader.destroy(publicId);
+        }
+        await Service.findByIdAndDelete(id);
         return res.status(200).json({ success: true, message: 'Service deleted' });
     } catch (error) {
         console.log(`Error: controller/service_controller/deleteService: ${error}`);

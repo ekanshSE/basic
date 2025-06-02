@@ -76,10 +76,25 @@ export const getAllTestimonial = async (req, res) => {
 export const deleteTestimonial = async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedTestimonial = await Testimonial.findByIdAndDelete(id);
-        if (!deletedTestimonial) {
+        const testimonial = await Testimonial.findById(id);
+        if (!testimonial) {
             return res.status(404).json({ success: false, message: 'Testimonial not found' });
         }
+        // Extract public_id from the image URL
+        const imageUrl = testimonial.image;
+        let publicId = null;
+        if (imageUrl) {
+            const parts = imageUrl.split('/');
+            const fileWithExt = parts[parts.length - 1];
+            publicId = fileWithExt.split('.')[0];
+            if (parts.length > 7) {
+                publicId = parts.slice(7, parts.length - 1).concat(publicId).join('/');
+            }
+        }
+        if (publicId) {
+            await cloudinary.uploader.destroy(publicId);
+        }
+        await Testimonial.findByIdAndDelete(id);
         return res.status(200).json({ success: true, message: 'Testimonial deleted' });
     } catch (error) {
         console.log(`Error: controller/testimonial_controller/deleteTestimonial: ${error}`);
