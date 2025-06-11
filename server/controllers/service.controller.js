@@ -70,7 +70,19 @@ export const allService = async (req, res) => {
     }
 }
 
-// export const getService = async(req, res)=>{}
+export const getService = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const service = await Service.findById(id).populate('author');
+        if (!service) {
+            return res.status(404).json({ success: false, message: 'Service not found' });
+        }
+        return res.status(200).json({ success: true, service });
+    } catch (error) {
+        console.log(`Error: controller/service_controller/getService: ${error}`);
+        return res.status(500).json({ success: false, message: 'Failed to fetch service' });
+    }
+}
 
 export const editService = async (req, res) => {
     try {
